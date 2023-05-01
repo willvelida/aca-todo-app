@@ -19,6 +19,9 @@ param appInsightsName string = 'appins-${appName}'
 @description('Specifies the name of the Key Vault')
 param keyVaultName string = 'kv-${appName}'
 
+@description('The name of the Cosmos DB account that will be deployed')
+param cosmosDbAccountName string = 'db-${appName}'
+
 @description('The last deployment timestamp')
 param lastDeployed string = utcNow('d')
 
@@ -94,5 +97,33 @@ resource env 'Microsoft.App/managedEnvironments@2022-10-01' = {
         sharedKey: logAnalytics.listKeys().primarySharedKey
       }
     }
+  }
+}
+
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-11-15' = {
+  name: cosmosDbAccountName
+  kind: 'GlobalDocumentDB'
+  location: location
+  tags: tags
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+    }
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
+  }
+  identity: {
+    type: 'SystemAssigned' 
   }
 }
