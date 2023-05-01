@@ -31,28 +31,6 @@ var tags = {
   LastDeployed: lastDeployed
 }
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: logAnalyticsName
-  location: location
-  tags: tags
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-}
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: appInsightsName
-  location: location
-  tags: tags
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
-  }
-}
-
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: keyVaultName
   location: location
@@ -70,60 +48,53 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   }
 }
 
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-12-01' = {
-  name: containerRegistryName
-  location: location
-  tags: tags
-  sku: {
-    name: 'Basic'
-  }
-  properties: {
-    adminUserEnabled: true
-  }
-  identity: {
-    type: 'SystemAssigned'
+module containerRegistry 'modules/container-registry.bicep' = {
+  name: 'acr'
+  params: {
+    containerRegistryName: containerRegistryName
+    keyVaultName: keyVault.name
+    location: location
+    tags: tags
   }
 }
 
-resource env 'Microsoft.App/managedEnvironments@2022-10-01' = {
-  name: containerAppEnvName
-  location: location
-  tags: tags
-  properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalytics.properties.customerId
-        sharedKey: logAnalytics.listKeys().primarySharedKey
-      }
-    }
+module logAnalytics 'modules/log-analytics.bicep' = {
+  name: 'law'
+  params: {
+    keyVaultName: keyVault.name 
+    location: location
+    logAnalyticsName: logAnalyticsName
+    tags: tags
   }
 }
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-11-15' = {
-  name: cosmosDbAccountName
-  kind: 'GlobalDocumentDB'
-  location: location
-  tags: tags
-  properties: {
-    databaseAccountOfferType: 'Standard'
-    consistencyPolicy: {
-      defaultConsistencyLevel: 'Session'
-    }
-    locations: [
-      {
-        locationName: location
-        failoverPriority: 0
-        isZoneRedundant: false
-      }
-    ]
-    capabilities: [
-      {
-        name: 'EnableServerless'
-      }
-    ]
+module appInsights 'modules/app-insights.bicep' = {
+  name: 'appins'
+  params: {
+    appInsightsName: appInsightsName 
+    location: location
+    logAnalyticsId: logAnalytics.outputs.logAnalyticsId
+    tags: tags
   }
-  identity: {
-    type: 'SystemAssigned' 
+}
+
+module env 'modules/container-app-environment.bicep' = {
+  name: 'env'
+  params: {
+    containerAppEnvName: containerAppEnvName
+    location: location
+    logAnalyticsCustomerId: logAnalytics.outputs.customerId 
+    logAnalyticsSharedKey: keyVault.getSecret('log-analytics-shared-key')
+    tags: tags
+  }
+}
+
+module cosmos 'modules/cosmos-db-account.bicep' = {
+  name: 'cosmos'
+  params: {
+    cosmosDbAccountName: cosmosDbAccountName
+    keyVaultName: keyVault.name
+    location: location
+    tags: tags
   }
 }
