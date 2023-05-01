@@ -13,6 +13,8 @@ param keyVaultName string
 @description('Specifies the resource ID of the log analytics workspace that we will send diagnostics to')
 param logAnalyticsId string
 
+var databaseName = 'TodoDB'
+
 var primaryConnectionStringSecretName = 'db-primary-connectionstring'
 var secondaryConnectionStringSecretName = 'db-secondary-connectionstring'
 var primaryMasterKeySecretName = 'db-primary-masterkey'
@@ -49,6 +51,16 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-11-15' = {
   }
   identity: {
     type: 'SystemAssigned' 
+  }
+}
+
+resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-11-15' = {
+  name: databaseName
+  parent: cosmos
+  properties: {
+    resource: {
+      id: databaseName
+    }
   }
 }
 
