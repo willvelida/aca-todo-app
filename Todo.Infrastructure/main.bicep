@@ -93,6 +93,7 @@ module cosmos 'modules/cosmos-db-account.bicep' = {
   name: 'cosmos'
   params: {
     cosmosDbAccountName: cosmosDbAccountName
+    logAnalyticsId: logAnalytics.outputs.logAnalyticsId
     keyVaultName: keyVault.name
     location: location
     tags: tags

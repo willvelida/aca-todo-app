@@ -10,6 +10,9 @@ param tags object
 @description('Specifies the name of the key vault that will be used to store Cosmos DB secrets')
 param keyVaultName string
 
+@description('Specifies the resource ID of the log analytics workspace that we will send diagnostics to')
+param logAnalyticsId string
+
 var primaryConnectionStringSecretName = 'db-primary-connectionstring'
 var secondaryConnectionStringSecretName = 'db-secondary-connectionstring'
 var primaryMasterKeySecretName = 'db-primary-masterkey'
@@ -94,5 +97,65 @@ resource secondaryReadonlySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
   parent: keyVault
   properties: {
     value: cosmos.listKeys().secondaryReadonlyMasterKey
+  }
+}
+
+resource diagnosticsLogs 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: cosmos.name
+  scope: cosmos
+  properties: {
+    workspaceId: logAnalyticsId
+    logs: [
+      {
+        category: 'ControlPlaneRequests'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'PartitionKeyStatistics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'QueryRuntimeStatistics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'PartitionKeyRUConsumption'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'DataPlaneRequests'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+    metrics: [
+      {
+        category: 'Requests'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
   }
 }
