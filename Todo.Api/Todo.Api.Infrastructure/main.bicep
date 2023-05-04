@@ -20,7 +20,7 @@ param keyVaultName string = 'kv-${appName}'
 param cosmosDbAccountName string = 'db-${appName}'
 
 @description('The name of the container image that this container app will use')
-param containerImage string = ''
+param containerImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
 @description('The last deployment timestamp')
 param lastDeployed string = utcNow('d')
@@ -91,6 +91,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-03-01-preview' exist
 
 resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-11-15' existing = {
   name: databaseName
+  parent: cosmos
 }
 
 resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2022-11-15' = {
